@@ -1176,7 +1176,7 @@ int main(int argc, char *argv[]) {
           if (preRotate != 0) {
             verboseLog(VERBOSE_NORMAL, "pre-rotating %d degrees.\n", preRotate);
 
-            flipRotate(preRotate / 90, &page);
+            flip_rotate_90(&page, preRotate / 90, absBlackThreshold);
           }
 
           // if sheet-size is not known yet (and not forced by --sheet-size),
@@ -1243,7 +1243,8 @@ int main(int argc, char *argv[]) {
         verboseLog(VERBOSE_NORMAL, "pre-mirroring %s\n",
                    getDirections(preMirror));
 
-        mirror(preMirror, sheet);
+        mirror(sheet, !!(preMirror & (1 << HORIZONTAL)),
+               !!(preMirror & (1 << VERTICAL)), absBlackThreshold);
       }
 
       // pre-shifting
@@ -1251,7 +1252,8 @@ int main(int argc, char *argv[]) {
         verboseLog(VERBOSE_NORMAL, "pre-shifting [%d,%d]\n", preShift[WIDTH],
                    preShift[HEIGHT]);
 
-        shift(preShift[WIDTH], preShift[HEIGHT], &sheet);
+        shift_image(&sheet, (Delta){preShift[WIDTH], preShift[HEIGHT]},
+                    absBlackThreshold);
       }
 
       // pre-masking
@@ -1900,20 +1902,23 @@ int main(int argc, char *argv[]) {
       if (postMirror != 0) {
         verboseLog(VERBOSE_NORMAL, "post-mirroring %s\n",
                    getDirections(postMirror));
-        mirror(postMirror, sheet);
+        mirror(sheet, !!(postMirror & (1 << HORIZONTAL)),
+               !!(postMirror & (1 << VERTICAL)), absBlackThreshold);
       }
 
       // post-shifting
       if ((postShift[WIDTH] != 0) || ((postShift[HEIGHT] != 0))) {
         verboseLog(VERBOSE_NORMAL, "post-shifting [%d,%d]\n", postShift[WIDTH],
                    postShift[HEIGHT]);
-        shift(postShift[WIDTH], postShift[HEIGHT], &sheet);
+
+        shift_image(&sheet, (Delta){postShift[WIDTH], postShift[HEIGHT]},
+                    absBlackThreshold);
       }
 
       // post-rotating
       if (postRotate != 0) {
         verboseLog(VERBOSE_NORMAL, "post-rotating %d degrees.\n", postRotate);
-        flipRotate(postRotate / 90, &sheet);
+        flip_rotate_90(&sheet, postRotate / 90, absBlackThreshold);
       }
 
       // post-stretch

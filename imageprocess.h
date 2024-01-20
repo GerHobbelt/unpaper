@@ -20,8 +20,6 @@ void stretch(int w, int h, AVFrame **image);
 
 void resize(int w, int h, AVFrame **image);
 
-void shift(int shiftX, int shiftY, AVFrame **image);
-
 /* --- mask-detection ----------------------------------------------------- */
 
 void detectMasks(AVFrame *image);
@@ -31,14 +29,6 @@ void applyMasks(const Mask *masks, const int maskCount, AVFrame *image);
 /* --- wiping ------------------------------------------------------------- */
 
 void applyWipes(const Mask *area, int areaCount, AVFrame *image);
-
-/* --- mirroring ---------------------------------------------------------- */
-
-void mirror(int directions, AVFrame *image);
-
-/* --- flip-rotating ------------------------------------------------------ */
-
-void flipRotate(int direction, AVFrame **image);
 
 /* --- border-detection --------------------------------------------------- */
 
