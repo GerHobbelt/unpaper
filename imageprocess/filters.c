@@ -246,8 +246,8 @@ GrayfilterParameters validate_grayfilter_parameters(uint32_t scan_size_h,
   return (GrayfilterParameters){
       .scan_size =
           {
-              .horizontal = scan_size_h,
-              .vertical = scan_size_v,
+              .width = scan_size_h,
+              .height = scan_size_v,
           },
       .scan_step =
           {
