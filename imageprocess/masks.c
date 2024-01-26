@@ -6,11 +6,48 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <libavutil/common.h> // for av_log2
+
+#include "constants.h"
 #include "imageprocess/blit.h"
 #include "imageprocess/masks.h"
 #include "imageprocess/pixel.h"
 #include "imageprocess/primitives.h"
 #include "lib/logging.h"
+
+Masks create_mask_array() {
+  return (Masks){
+      .count = 0,
+      .masks = calloc(1, sizeof(Rectangle)),
+  };
+}
+
+bool append_mask(Masks *mask_array, Rectangle new_mask) {
+  // First check if we need to re-allocate the masks.
+  size_t allocated_log = av_log2(mask_array->count);
+  size_t allocated = (1 << allocated_log);
+  if (mask_array->count >= allocated) {
+    // Increase allocation in power-of-two steps, as other allocators would.
+    allocated *= 2;
+    if (allocated >= MAX_MASKS) {
+      return false;
+    }
+
+    mask_array->masks =
+        realloc(mask_array->masks, allocated * sizeof(Rectangle));
+  }
+
+  mask_array->masks[mask_array->count++] = new_mask;
+  return true;
+}
+
+void free_mask_array(Masks *mask_array) {
+  if (mask_array->count != 0) {
+    free(mask_array->masks);
+    mask_array->masks = NULL;
+    mask_array->count = 0;
+  }
+}
 
 MaskDetectionParameters
 validate_mask_detection_parameters(int scan_directions,
@@ -186,34 +223,39 @@ static const Rectangle INVALID_MASK = {{{-1, -1}, {-1, -1}}};
  *
  * @return number of masks stored in mask[][]
  */
-size_t detect_masks(Image image, MaskDetectionParameters params,
-                    const Point points[], size_t points_count,
-                    Rectangle masks[]) {
-  size_t masks_count = 0;
+Masks detect_masks(Image image, MaskDetectionParameters params,
+                   const Point points[], size_t points_count) {
+
+  Masks masks = create_mask_array();
   if (!params.scan_horizontal && !params.scan_vertical) {
-    return masks_count;
+    return masks;
   }
 
   for (size_t i = 0; i < points_count; i++) {
-    bool mask_valid = detect_mask(image, params, points[i], &masks[i]);
+    Rectangle detected_mask;
+    bool mask_valid = detect_mask(image, params, points[i], &detected_mask);
 
     // Compare the newly-detected mask with an invalid mask where all the
     // vertex are (-1, -1)
-    if (memcmp(&masks[i], &INVALID_MASK, sizeof(INVALID_MASK)) != 0) {
-      masks_count++;
+    if (memcmp(&detected_mask, &INVALID_MASK, sizeof(INVALID_MASK)) != 0) {
+      const char *error = "";
+      if (!append_mask(&masks, detected_mask)) {
+        error = " maximum number of masks (%d) exceeded, ignoring mask.";
+      }
 
-      verboseLog(
-          VERBOSE_NORMAL, "auto-masking (%d,%d): %d,%d,%d,%d%s\n", points[i].x,
-          points[i].y, masks[i].vertex[0].x, masks[i].vertex[0].y,
-          masks[i].vertex[1].x, masks[i].vertex[1].y,
-          mask_valid ? "" : " (invalid detection, using full page size)");
+      verboseLog(VERBOSE_NORMAL, "auto-masking (%d,%d): %d,%d,%d,%d%s%s\n",
+                 points[i].x, points[i].y, detected_mask.vertex[0].x,
+                 detected_mask.vertex[0].y, detected_mask.vertex[1].x,
+                 detected_mask.vertex[1].y,
+                 mask_valid ? "" : " (invalid detection, using full page size)",
+                 error);
     } else {
       verboseLog(VERBOSE_NORMAL, "auto-masking (%d,%d): NO MASK FOUND\n",
                  points[i].x, points[i].y);
     }
   }
 
-  return masks_count;
+  return masks;
 }
 
 /**
@@ -313,9 +355,8 @@ void align_mask(Image image, const Rectangle inside_area,
  * Permanently applies image masks. Each pixel which is not covered by at least
  * one mask is set to maskColor.
  */
-void apply_masks(Image image, const Rectangle masks[], size_t masks_count,
-                 Pixel color) {
-  if (masks_count <= 0) {
+void apply_masks(Image image, Masks masks, Pixel color) {
+  if (masks.count <= 0) {
     return;
   }
 
@@ -323,7 +364,7 @@ void apply_masks(Image image, const Rectangle masks[], size_t masks_count,
 
   scan_rectangle(image_area) {
     Point p = {x, y};
-    if (!point_in_rectangles_any(p, masks_count, masks)) {
+    if (!point_in_rectangles_any(p, masks.count, masks.masks)) {
       set_pixel(image, p, color);
     }
   }
@@ -333,20 +374,19 @@ void apply_masks(Image image, const Rectangle masks[], size_t masks_count,
  * Permanently wipes out areas of an images. Each pixel covered by a wipe-area
  * is set to wipeColor.
  */
-void apply_wipes(Image image, Rectangle wipes[], size_t wipes_count,
-                 Pixel color) {
-  for (size_t i = 0; i < wipes_count; i++) {
+void apply_wipes(Image image, Masks wipes, Pixel color) {
+  for (size_t i = 0; i < wipes.count; i++) {
     uint64_t count = 0;
 
-    scan_rectangle(wipes[i]) {
+    scan_rectangle(wipes.masks[i]) {
       if (set_pixel(image, (Point){x, y}, color)) {
         count++;
       }
     }
 
     verboseLog(VERBOSE_MORE, "wipe [%d,%d,%d,%d]: %" PRIu64 " pixels\n",
-               wipes[i].vertex[0].x, wipes[i].vertex[0].y, wipes[i].vertex[1].x,
-               wipes[i].vertex[1].y, count);
+               wipes.masks[i].vertex[0].x, wipes.masks[i].vertex[0].y,
+               wipes.masks[i].vertex[1].x, wipes.masks[i].vertex[1].y, count);
   }
 }
 
@@ -375,12 +415,15 @@ void apply_border(Image image, const Border border, Pixel color) {
     return;
   }
 
+  Masks masks = create_mask_array();
   Rectangle mask = border_to_mask(image, border);
+  append_mask(&masks, mask);
+
   verboseLog(VERBOSE_NORMAL, "applying border (%d,%d,%d,%d) [%d,%d,%d,%d]\n",
              border.left, border.top, border.right, border.bottom,
              mask.vertex[0].x, mask.vertex[0].y, mask.vertex[1].x,
              mask.vertex[1].y);
-  apply_masks(image, &mask, 1, color);
+  apply_masks(image, masks, color);
 }
 
 BorderScanParameters
