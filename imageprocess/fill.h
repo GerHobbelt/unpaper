@@ -6,9 +6,8 @@
 
 #include <stdint.h>
 
-#include "imageprocess/primitives.h"
 #include "imageprocess/image.h"
+#include "imageprocess/primitives.h"
 
 void flood_fill(Image image, Point p, Pixel color, uint8_t mask_min,
-                uint8_t mask_max, uint64_t intensity,
-                uint8_t abs_black_threshold);
+                uint8_t mask_max, uint64_t intensity);

@@ -14,7 +14,8 @@ typedef struct {
   uint8_t abs_black_threshold;
 } Image;
 
-#define EMPTY_IMAGE (Image){NULL, PIXEL_WHITE, 0}
+#define EMPTY_IMAGE                                                            \
+  (Image) { NULL, PIXEL_WHITE, 0 }
 
 Image create_image(RectangleSize size, int pixel_format, bool fill,
                    Pixel sheet_background, uint8_t abs_black_threshold);
