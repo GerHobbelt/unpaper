@@ -6,7 +6,7 @@
 
 #include <stdlib.h>
 
-#include "imageprocess/math_util.h"
+#include "lib/math_util.h"
 #include "imageprocess/primitives.h"
 
 Delta distance_between(Point a, Point b) {
