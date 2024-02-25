@@ -7,6 +7,7 @@
 #include <stdbool.h>
 
 #include "constants.h"
+#include "imageprocess/interpolate.h"
 #include "imageprocess/masks.h"
 #include "imageprocess/primitives.h"
 #include "imageprocess/interpolate.h"
