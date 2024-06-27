@@ -2,9 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-2.0-only
 
+#include "lib/porting.h"
+
 #include <math.h>
 
-#include <libavutil/mathematics.h> // for M_PI
+//#include <libavutil/mathematics.h> // for M_PI
 
 #include "constants.h"
 #include "imageprocess/blit.h"

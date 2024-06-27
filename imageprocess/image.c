@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-only
 
+#include "lib/porting.h"
+
 #include <libavutil/frame.h>
 
 #include "imageprocess/blit.h"

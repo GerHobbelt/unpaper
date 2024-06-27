@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "porting.h"
+
 typedef enum {
   VERBOSE_QUIET = -1,
   VERBOSE_NONE = 0,

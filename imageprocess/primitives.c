@@ -4,6 +4,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-only
 
+#include "lib/porting.h"
+
 #include <stdlib.h>
 
 #include "imageprocess/primitives.h"

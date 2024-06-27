@@ -2,10 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-2.0-only
 
+#include "lib/porting.h"
+
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 
 #include "lib/logging.h"
 #include "lib/math_util.h"
